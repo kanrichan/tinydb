@@ -7,40 +7,21 @@ import (
 
 type StorageType map[string]map[int]map[string]interface{}
 
-type Sto interface {
+type Storage interface {
 	Read() (StorageType, error)
 	Write(StorageType) error
 }
 
-type Storage struct {
-	Chan chan operate
+type BaseStorage struct {
 }
 
-type operate struct {
-	Handle   func() (int, error)
-	Callback chan callback
-}
-
-type callback struct {
-	id  int
-	err error
-}
-
-func NewStorage() (*Storage, error) {
-	var sto Storage
-	sto.Chan = make(chan operate)
-	go func() {
-		select {
-		case op := <-sto.Chan:
-			id, err := op.Handle()
-			op.Callback <- callback{id: id, err: err}
-		}
-	}()
+func NewStorage() (*BaseStorage, error) {
+	var sto BaseStorage
 	return &sto, nil
 }
 
 type JSONStorage struct {
-	Storage
+	BaseStorage
 	Handle *os.File
 }
 
@@ -50,7 +31,7 @@ func NewJSONStorage(path string) (*JSONStorage, error) {
 		return nil, err
 	}
 	fi, err := os.OpenFile(path, os.O_CREATE, 0644)
-	return &JSONStorage{Storage: *sto, Handle: fi}, err
+	return &JSONStorage{BaseStorage: *sto, Handle: fi}, err
 }
 
 func (sto *JSONStorage) Read() (StorageType, error) {
@@ -66,7 +47,7 @@ func (sto *JSONStorage) Write(data StorageType) error {
 }
 
 type MemoryStorage struct {
-	Storage
+	BaseStorage
 	Chan   chan int
 	Memory StorageType
 }
