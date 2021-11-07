@@ -2,7 +2,9 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"os"
+	"strings"
 	"sync"
 )
 
@@ -28,35 +30,57 @@ func NewBaseStorage() (*BaseStorage, error) {
 
 type JSONStorage struct {
 	BaseStorage
-	Mutex  sync.Mutex
-	Handle *os.File
+	mutex  sync.Mutex
+	handle *os.File
 }
 
-func NewJSONStorage(path string) (*JSONStorage, error) {
+func NewJSONStorage(file string) (*JSONStorage, error) {
 	sto, err := NewBaseStorage()
 	if err != nil {
 		return nil, err
 	}
-	fi, err := os.OpenFile(path, os.O_CREATE, 0644)
-	return &JSONStorage{BaseStorage: *sto, Handle: fi}, err
+	var dir string
+	i1 := strings.Index(file, `\`)
+	i2 := strings.Index(file, `/`)
+	if i1 != -1 || i2 != -1 {
+		if i1 > i2 {
+			dir = file[:i1]
+		} else {
+			dir = file[:i2]
+		}
+		if _, err := os.Stat(dir); os.IsNotExist(err) {
+			if err := os.MkdirAll(dir, 0755); err != nil {
+				return nil, err
+			}
+		}
+	}
+	fi, err := os.OpenFile(file, os.O_RDWR|os.O_TRUNC|os.O_CREATE, 0644)
+	return &JSONStorage{BaseStorage: *sto, handle: fi}, err
 }
 
 func (sto *JSONStorage) Read() (*StorageData, error) {
-	var data = StorageData{}
-	dec := json.NewDecoder(sto.Handle)
-	err := dec.Decode(&data.data)
-	return &data, err
+	var data = StorageType{}
+	sto.mutex.Lock()
+	defer sto.mutex.Unlock()
+	sto.handle.Seek(0, 0)
+	dec := json.NewDecoder(sto.handle)
+	err := dec.Decode(&data)
+	return &StorageData{data: data}, err
 }
 
 func (sto *JSONStorage) Write(data *StorageData) error {
-	sto.Mutex.Lock()
-	defer sto.Mutex.Unlock()
-	enc := json.NewEncoder(sto.Handle)
+	sto.mutex.Lock()
+	defer sto.mutex.Unlock()
+	sto.handle.Seek(0, 0)
+	enc := json.NewEncoder(sto.handle)
+	if data.data == nil {
+		return errors.New("Nothing needs to be written")
+	}
 	return enc.Encode(data.data)
 }
 
 func (sto *JSONStorage) Close() error {
-	return sto.Handle.Close()
+	return sto.handle.Close()
 }
 
 type MemoryStorage struct {
