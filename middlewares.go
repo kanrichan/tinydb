@@ -1,34 +1,43 @@
 package main
 
-type Middleware struct {
+type BaseMiddleware struct {
 	storage Storage
 }
 
 type CachingMiddleware struct {
-	Middleware
+	BaseMiddleware
 	cache StorageType
 	count int
 	size  int
 }
 
-func NewCachingMiddleware(storage Storage) *CachingMiddleware {
+func NewCachingMiddleware(storage Storage, err error) (*CachingMiddleware, error) {
 	return &CachingMiddleware{
-		Middleware: Middleware{storage: storage},
-	}
+		BaseMiddleware: BaseMiddleware{storage: storage},
+		size:           1000,
+	}, err
 }
 
-func (mi *CachingMiddleware) Read() (StorageType, error) {
-	if mi.cache == nil {
-		return mi.Middleware.storage.Read()
+func (mv *CachingMiddleware) Read() (StorageType, error) {
+	if mv.cache == nil {
+		return mv.BaseMiddleware.storage.Read()
 	}
-	return mi.cache, nil
+	return mv.cache, nil
 }
 
-func (mi *CachingMiddleware) Write(data StorageType) error {
-	mi.cache = data
-	mi.count++
-	if mi.count >= mi.size {
-		return mi.storage.Write(mi.cache)
+func (mv *CachingMiddleware) Write(data StorageType) error {
+	mv.cache = data
+	mv.count++
+	if mv.count >= mv.size {
+		return mv.storage.Write(mv.cache)
 	}
 	return nil
+}
+
+func (mv *CachingMiddleware) Close() error {
+	err := mv.storage.Write(mv.cache)
+	if err != nil {
+		return err
+	}
+	return mv.storage.Close()
 }

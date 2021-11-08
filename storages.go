@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"errors"
+	"io"
 	"os"
 	"strings"
 	"sync"
@@ -10,35 +11,18 @@ import (
 
 type StorageType map[string]TableType
 
-type StorageData struct {
-	mutex sync.Mutex
-	data  StorageType
-}
-
 type Storage interface {
-	Read() (*StorageData, error)
-	Write(*StorageData) error
+	Read() (StorageType, error)
+	Write(StorageType) error
 	Close() error
 }
 
-type BaseStorage struct {
-}
-
-func NewBaseStorage() (*BaseStorage, error) {
-	return &BaseStorage{}, nil
-}
-
-type JSONStorage struct {
-	BaseStorage
+type storageJSON struct {
 	mutex  sync.Mutex
 	handle *os.File
 }
 
-func NewJSONStorage(file string) (*JSONStorage, error) {
-	sto, err := NewBaseStorage()
-	if err != nil {
-		return nil, err
-	}
+func JSONStorage(file string) (*storageJSON, error) {
 	var dir string
 	i1 := strings.Index(file, `\`)
 	i2 := strings.Index(file, `/`)
@@ -54,53 +38,55 @@ func NewJSONStorage(file string) (*JSONStorage, error) {
 			}
 		}
 	}
-	fi, err := os.OpenFile(file, os.O_RDWR|os.O_TRUNC|os.O_CREATE, 0644)
-	return &JSONStorage{BaseStorage: *sto, handle: fi}, err
+	fi, err := os.OpenFile(file, os.O_RDWR|os.O_CREATE, 0644)
+	return &storageJSON{handle: fi}, err
 }
 
-func (sto *JSONStorage) Read() (*StorageData, error) {
+func (sto *storageJSON) Read() (StorageType, error) {
 	var data = StorageType{}
-	sto.mutex.Lock()
-	defer sto.mutex.Unlock()
 	sto.handle.Seek(0, 0)
 	dec := json.NewDecoder(sto.handle)
 	err := dec.Decode(&data)
-	return &StorageData{data: data}, err
+	if err != nil && err != io.EOF {
+		return data, err
+	}
+	return data, nil
 }
 
-func (sto *JSONStorage) Write(data *StorageData) error {
+func (sto *storageJSON) Write(data StorageType) error {
 	sto.mutex.Lock()
 	defer sto.mutex.Unlock()
+	sto.handle.Truncate(0)
 	sto.handle.Seek(0, 0)
 	enc := json.NewEncoder(sto.handle)
-	if data.data == nil {
+	enc.SetIndent("", "    ")
+	if data == nil {
 		return errors.New("Nothing needs to be written")
 	}
-	return enc.Encode(data.data)
+	return enc.Encode(data)
 }
 
-func (sto *JSONStorage) Close() error {
+func (sto *storageJSON) Close() error {
 	return sto.handle.Close()
 }
 
-type MemoryStorage struct {
-	BaseStorage
-	Memory *StorageData
+type storageMemory struct {
+	Memory StorageType
 }
 
-func NewMemoryStorage() (*MemoryStorage, error) {
-	return &MemoryStorage{Memory: &StorageData{}}, nil
+func MemoryStorage() (*storageMemory, error) {
+	return &storageMemory{Memory: StorageType{}}, nil
 }
 
-func (sto *MemoryStorage) Read() (*StorageData, error) {
+func (sto *storageMemory) Read() (StorageType, error) {
 	return sto.Memory, nil
 }
 
-func (sto *MemoryStorage) Write(data *StorageData) error {
+func (sto *storageMemory) Write(data StorageType) error {
 	sto.Memory = data
 	return nil
 }
 
-func (sto *MemoryStorage) Close() error {
+func (sto *storageMemory) Close() error {
 	return nil
 }
