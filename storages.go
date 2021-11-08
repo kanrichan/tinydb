@@ -1,4 +1,4 @@
-package main
+package tinydb
 
 import (
 	"encoding/json"
@@ -6,23 +6,10 @@ import (
 	"io"
 	"os"
 	"strings"
-	"sync"
 )
 
-type StorageType map[string]TableType
-
-type Storage interface {
-	Read() (StorageType, error)
-	Write(StorageType) error
-	Close() error
-}
-
-type storageJSON struct {
-	mutex  sync.Mutex
-	handle *os.File
-}
-
-func JSONStorage(file string) (*storageJSON, error) {
+// JSONStorage Create a new JSONStorage instance.
+func JSONStorage(file string) (*StorageJSON, error) {
 	var dir string
 	i1 := strings.Index(file, `\`)
 	i2 := strings.Index(file, `/`)
@@ -39,11 +26,12 @@ func JSONStorage(file string) (*storageJSON, error) {
 		}
 	}
 	fi, err := os.OpenFile(file, os.O_RDWR|os.O_CREATE, 0644)
-	return &storageJSON{handle: fi}, err
+	return &StorageJSON{handle: fi}, err
 }
 
-func (sto *storageJSON) Read() (StorageType, error) {
-	var data = StorageType{}
+// Read Read data from JSON file
+func (sto *StorageJSON) Read() (StorageData, error) {
+	var data = StorageData{}
 	sto.handle.Seek(0, 0)
 	dec := json.NewDecoder(sto.handle)
 	err := dec.Decode(&data)
@@ -53,7 +41,8 @@ func (sto *storageJSON) Read() (StorageType, error) {
 	return data, nil
 }
 
-func (sto *storageJSON) Write(data StorageType) error {
+// Write Write data to JSON file
+func (sto *StorageJSON) Write(data StorageData) error {
 	sto.mutex.Lock()
 	defer sto.mutex.Unlock()
 	sto.handle.Truncate(0)
@@ -66,27 +55,28 @@ func (sto *storageJSON) Write(data StorageType) error {
 	return enc.Encode(data)
 }
 
-func (sto *storageJSON) Close() error {
+// Close Close the JSONStorage instance.
+func (sto *StorageJSON) Close() error {
 	return sto.handle.Close()
 }
 
-type storageMemory struct {
-	Memory StorageType
+// MemoryStorage Create a new MemoryStorage instance.
+func MemoryStorage() (*StorageMemory, error) {
+	return &StorageMemory{memory: StorageData{}}, nil
 }
 
-func MemoryStorage() (*storageMemory, error) {
-	return &storageMemory{Memory: StorageType{}}, nil
+// Read Read data from memory
+func (sto *StorageMemory) Read() (StorageData, error) {
+	return sto.memory, nil
 }
 
-func (sto *storageMemory) Read() (StorageType, error) {
-	return sto.Memory, nil
-}
-
-func (sto *storageMemory) Write(data StorageType) error {
-	sto.Memory = data
+// Write Write data to memory
+func (sto *StorageMemory) Write(data StorageData) error {
+	sto.memory = data
 	return nil
 }
 
-func (sto *storageMemory) Close() error {
+// MemoryStorage Close the MemoryStorage instance.
+func (sto *StorageMemory) Close() error {
 	return nil
 }

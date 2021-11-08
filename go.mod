@@ -1,3 +1,3 @@
-module main
+module github.com/Yiwen-Chan/tinydb
 
 go 1.16

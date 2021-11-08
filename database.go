@@ -1,12 +1,6 @@
-package main
+package tinydb
 
-type connect struct {
-	table string
-	conn  chan *Request
-	stop  chan bool
-}
-
-func TinyDB(storage Storage) *connect {
+func TinyDB(storage Storage) *database {
 	var conn = make(chan *Request)
 	var stop = make(chan bool)
 	go func() {
@@ -22,15 +16,15 @@ func TinyDB(storage Storage) *connect {
 			}
 		}
 	}()
-	return &connect{"_default", conn, stop}
+	return &database{"_default", conn, stop}
 }
 
-func (conn *connect) SetTable(name string) *connect {
+func (conn *database) SetTable(name string) *database {
 	conn.table = name
 	return conn
 }
 
-func (conn *connect) Exec(req *Request) *Response {
+func (conn *database) Exec(req *Request) *Response {
 	response := make(chan *Response)
 	req.table = conn.table
 	req.response = response
@@ -40,7 +34,7 @@ func (conn *connect) Exec(req *Request) *Response {
 	return resp
 }
 
-func (conn *connect) Close() {
+func (conn *database) Close() {
 	conn.stop <- true
 	close(conn.conn)
 	close(conn.stop)
