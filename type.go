@@ -1,4 +1,4 @@
-package tinydb
+package main
 
 import (
 	"os"
@@ -52,7 +52,7 @@ type MiddlewareCaching struct {
 type Request struct {
 	table     string
 	operation func() func(storage Storage) ([]Document, error)
-	condition func() func(doc Document) bool
+	condition func(doc Document) bool
 	response  chan *Response
 }
 

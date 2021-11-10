@@ -1,4 +1,4 @@
-package tinydb
+package main
 
 func Insert(doc ...Document) *Request {
 	req := &Request{}
@@ -39,7 +39,7 @@ func Remove() *Request {
 			}
 			var docs []Document
 			for id, doc := range data[req.table] {
-				if req.condition()(doc) {
+				if req.condition(doc) {
 					docs = append(docs, data[req.table][id])
 					delete(data[req.table], id)
 				}
@@ -63,7 +63,7 @@ func Search() *Request {
 			}
 			var docs []Document
 			for id, doc := range data[req.table] {
-				if req.condition()(doc) {
+				if req.condition(doc) {
 					docs = append(docs, data[req.table][id])
 				}
 			}
@@ -86,7 +86,7 @@ func Update(kv map[string]interface{}) *Request {
 			}
 			var docs []Document
 			for _, doc := range data[req.table] {
-				if req.condition()(doc) {
+				if req.condition(doc) {
 					docs = append(docs, doc)
 					for key := range kv {
 						doc[key] = kv[key]

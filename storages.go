@@ -1,4 +1,4 @@
-package tinydb
+package main
 
 import (
 	"encoding/json"

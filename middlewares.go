@@ -1,4 +1,4 @@
-package tinydb
+package main
 
 func CachingMiddleware(storage Storage, err error) (*MiddlewareCaching, error) {
 	return &MiddlewareCaching{

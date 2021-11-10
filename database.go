@@ -1,4 +1,4 @@
-package tinydb
+package main
 
 func TinyDB(storage Storage) *database {
 	var conn = make(chan *Request)
