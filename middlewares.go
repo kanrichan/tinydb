@@ -1,4 +1,8 @@
-package main
+package tinydb
+
+import (
+	"encoding/json"
+)
 
 func CachingMiddleware(storage Storage, err error) (*MiddlewareCaching, error) {
 	return &MiddlewareCaching{
@@ -7,24 +11,38 @@ func CachingMiddleware(storage Storage, err error) (*MiddlewareCaching, error) {
 	}, err
 }
 
-func (mv *MiddlewareCaching) Read() (TinyTabsMap, error) {
-	if mv.cache.item == nil {
+func (mv *MiddlewareCaching) Read() (TinyTabs, error) {
+	if mv.cache == nil {
 		return mv.storage.Read()
 	}
-	return mv.cache, nil
+	var tabs TinyTabs
+	json.Unmarshal(mv.cache, &tabs)
+	return tabs, nil
 }
 
-func (mv *MiddlewareCaching) Write(data TinyTabsMap) error {
-	mv.cache = data
+func (mv *MiddlewareCaching) Write(tabs TinyTabs) error {
+	b, err := json.Marshal(tabs)
+	if err != nil {
+		return err
+	}
+	mv.cache = b
 	mv.count++
 	if mv.count >= mv.size {
-		return mv.storage.Write(mv.cache)
+		tab, err := mv.Read()
+		if err != nil {
+			return err
+		}
+		return mv.storage.Write(tab)
 	}
 	return nil
 }
 
 func (mv *MiddlewareCaching) Close() error {
-	err := mv.storage.Write(mv.cache)
+	tab, err := mv.Read()
+	if err != nil {
+		return err
+	}
+	err = mv.storage.Write(tab)
 	if err != nil {
 		return err
 	}

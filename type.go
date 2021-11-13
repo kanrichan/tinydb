@@ -1,4 +1,4 @@
-package main
+package tinydb
 
 import (
 	"os"
@@ -8,13 +8,14 @@ import (
 // Storage An interface of Storage & Middleware
 // Should implement the method of Read() Write() Close()
 type Storage interface {
-	Read() (TinyTabsMap, error)
-	Write(TinyTabsMap) error
+	Read() (TinyTabs, error)
+	Write(TinyTabs) error
 	Close() error
 }
 
 // database the TinyDB class
 type database struct {
+	sync.Mutex
 	table   string
 	storage Storage
 }
@@ -27,13 +28,27 @@ type StorageJSON struct {
 
 // StorageMemory Store the data in a memory.
 type StorageMemory struct {
-	memory TinyTabsMap
+	memory []byte
 }
 
 // MiddlewareCaching
 type MiddlewareCaching struct {
 	storage Storage
-	cache   TinyTabsMap
+	cache   []byte
 	count   int
 	size    int
 }
+
+type TinyTabs map[string]TinyDocs
+type TinyDocs map[int]TinyRecs
+type TinyRecs map[string]TinyData
+type TinyData interface{}
+
+type Selector func(docs TinyDocs) []int
+
+type TinyRecsIter struct {
+	index int
+	item  []TinyRecs
+}
+
+type TinyRecsArr []TinyRecs

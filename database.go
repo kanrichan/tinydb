@@ -1,35 +1,39 @@
-package main
+package tinydb
 
-import "errors"
+import (
+	"errors"
+	"sync"
+)
 
 func TinyDB(storage Storage, err error) (*database, error) {
 	if err != nil {
 		return nil, err
 	}
+	var tiny = &database{sync.Mutex{}, "_default", storage}
+	tiny.Lock()
+	defer tiny.Unlock()
 	tabs, err := storage.Read()
 	if err != nil {
 		return nil, err
 	}
-	if _, ok := tabs.item["_default"]; !ok {
-		tabs.Lock()
-		defer tabs.Unlock()
-		tabs.item = TinyTabs{}
+	if _, ok := tabs["_default"]; !ok {
+		tabs["_default"] = TinyDocs{}
 		if err := storage.Write(tabs); err != nil {
 			return nil, err
 		}
 	}
-	return &database{"_default", storage}, nil
+	return tiny, nil
 }
 
 func (tiny *database) SetTable(name string) error {
+	tiny.Lock()
+	defer tiny.Unlock()
 	tabs, err := tiny.storage.Read()
 	if err != nil {
 		return err
 	}
-	if _, ok := tabs.item[name]; !ok {
-		tabs.Lock()
-		defer tabs.Unlock()
-		tabs.item = TinyTabs{}
+	if _, ok := tabs[name]; !ok {
+		tabs[name] = TinyDocs{}
 		if err := tiny.storage.Write(tabs); err != nil {
 			return err
 		}
@@ -38,94 +42,84 @@ func (tiny *database) SetTable(name string) error {
 	return nil
 }
 
-func (tiny *database) Insert(rec TinyRecs) error {
+func (tiny *database) DropTable(name string) error {
+	tiny.Lock()
+	defer tiny.Unlock()
 	tabs, err := tiny.storage.Read()
 	if err != nil {
 		return err
 	}
-	tabs.Lock()
-	defer tabs.Unlock()
-	if _, ok := tabs.item[tiny.table]; !ok {
-		tabs.item[tiny.table] = TinyDocs{}
+	delete(tabs, name)
+	return tiny.storage.Write(tabs)
+}
+
+func (tiny *database) Insert(rec TinyRecs) error {
+	tiny.Lock()
+	defer tiny.Unlock()
+	tabs, err := tiny.storage.Read()
+	if err != nil {
+		return err
+	}
+	if _, ok := tabs[tiny.table]; !ok {
+		tabs[tiny.table] = TinyDocs{}
 	}
 	var max = 0
-	for i := range tabs.item[tiny.table] {
+	for i := range tabs[tiny.table] {
 		if max < i {
 			max = i
 		}
 	}
-	tabs.item[tiny.table][max+1] = rec
+	tabs[tiny.table][max+1] = rec
 	return tiny.storage.Write(tabs)
 }
 
-func (tiny *database) Search(fn func(recs TinyRecs) bool) ([]TinyRecsMap, error) {
+func (tiny *database) Search(selector Selector) (*TinyRecsIter, error) {
+	tiny.Lock()
+	defer tiny.Unlock()
 	tabs, err := tiny.storage.Read()
 	if err != nil {
 		return nil, err
 	}
-	if _, ok := tabs.item[tiny.table]; !ok {
+	if _, ok := tabs[tiny.table]; !ok {
 		return nil, errors.New("No such table")
 	}
-	tabs.RLock()
-	defer tabs.RUnlock()
-	var recs = []TinyRecsMap{}
-	for i := range tabs.item[tiny.table] {
-		if !fn(tabs.item[tiny.table][i]) {
-			continue
-		}
-		recs = append(recs, TinyRecsMap{tabs.Docs(tiny.table), i})
+	var recs = TinyRecsArr{}
+	for _, i := range selector(tabs[tiny.table]) {
+		recs = append(recs, tabs[tiny.table][i])
 	}
-	return recs, nil
+	return recs.Iterator(), nil
 }
 
-func (tiny *database) Update(recs TinyRecs, fn func(recs TinyRecs) bool) error {
+func (tiny *database) Update(recs TinyRecs, selector Selector) error {
+	tiny.Lock()
+	defer tiny.Unlock()
 	tabs, err := tiny.storage.Read()
 	if err != nil {
 		return err
 	}
-	if _, ok := tabs.item[tiny.table]; !ok {
+	if _, ok := tabs[tiny.table]; !ok {
 		return errors.New("No such table")
 	}
-	tabs.Lock()
-	defer tabs.Unlock()
-	for i := range tabs.item[tiny.table] {
-		if !fn(tabs.item[tiny.table][i]) {
-			continue
-		}
+	for _, i := range selector(tabs[tiny.table]) {
 		for k := range recs {
-			tabs.item[tiny.table][i][k] = recs[k]
+			tabs[tiny.table][i][k] = recs[k]
 		}
 	}
 	return tiny.storage.Write(tabs)
 }
 
-func (tiny *database) Remove(fn func(recs TinyRecs) bool) error {
+func (tiny *database) Remove(selector Selector) error {
+	tiny.Lock()
+	defer tiny.Unlock()
 	tabs, err := tiny.storage.Read()
 	if err != nil {
 		return err
 	}
-	if _, ok := tabs.item[tiny.table]; !ok {
+	if _, ok := tabs[tiny.table]; !ok {
 		return errors.New("No such table")
 	}
-	tabs.Lock()
-	defer tabs.Unlock()
-	for i := range tabs.item[tiny.table] {
-		if !fn(tabs.item[tiny.table][i]) {
-			continue
-		}
-		delete(tabs.item[tiny.table], i)
+	for _, i := range selector(tabs[tiny.table]) {
+		delete(tabs[tiny.table], i)
 	}
 	return tiny.storage.Write(tabs)
-}
-
-func Equal(key string, value int) func(recs TinyRecs) bool {
-	return func(recs TinyRecs) bool {
-		if _, ok := recs[key]; !ok {
-			return false
-		}
-		if _, ok := recs[key].(float64); !ok {
-			return false
-		}
-		return int(recs[key].(float64)) == value
-	}
 }

@@ -1,4 +1,4 @@
-package main
+package tinydb
 
 import (
 	"encoding/json"
@@ -6,7 +6,6 @@ import (
 	"io"
 	"os"
 	"strings"
-	"sync"
 )
 
 // JSONStorage Create a new JSONStorage instance.
@@ -31,7 +30,7 @@ func JSONStorage(file string) (*StorageJSON, error) {
 }
 
 // Read Read data from JSON file
-func (sto *StorageJSON) Read() (TinyTabsMap, error) {
+func (sto *StorageJSON) Read() (TinyTabs, error) {
 	sto.mutex.Lock()
 	defer sto.mutex.Unlock()
 	var tabs = TinyTabs{}
@@ -39,23 +38,23 @@ func (sto *StorageJSON) Read() (TinyTabsMap, error) {
 	dec := json.NewDecoder(sto.handle)
 	err := dec.Decode(&tabs)
 	if err != nil && err != io.EOF {
-		return TinyTabsMap{item: tabs}, err
+		return tabs, err
 	}
-	return TinyTabsMap{&sync.RWMutex{}, tabs}, nil
+	return tabs, nil
 }
 
 // Write Write data to JSON file
-func (sto *StorageJSON) Write(tabs TinyTabsMap) error {
+func (sto *StorageJSON) Write(tabs TinyTabs) error {
 	sto.mutex.Lock()
 	defer sto.mutex.Unlock()
 	sto.handle.Truncate(0)
 	sto.handle.Seek(0, 0)
 	enc := json.NewEncoder(sto.handle)
 	enc.SetIndent("", "    ")
-	if tabs.item == nil {
+	if tabs == nil {
 		return errors.New("Nothing needs to be written")
 	}
-	return enc.Encode(tabs.item)
+	return enc.Encode(tabs)
 }
 
 // Close Close the JSONStorage instance.
@@ -65,17 +64,23 @@ func (sto *StorageJSON) Close() error {
 
 // MemoryStorage Create a new MemoryStorage instance.
 func MemoryStorage() (*StorageMemory, error) {
-	return &StorageMemory{TinyTabsMap{&sync.RWMutex{}, TinyTabs{}}}, nil
+	return &StorageMemory{memory: []byte{}}, nil
 }
 
 // Read Read data from memory
-func (sto *StorageMemory) Read() (TinyTabsMap, error) {
-	return sto.memory, nil
+func (sto *StorageMemory) Read() (TinyTabs, error) {
+	var tabs TinyTabs
+	json.Unmarshal(sto.memory, &tabs)
+	return tabs, nil
 }
 
 // Write Write data to memory
-func (sto *StorageMemory) Write(data TinyTabsMap) error {
-	sto.memory = data
+func (sto *StorageMemory) Write(tabs TinyTabs) error {
+	b, err := json.Marshal(tabs)
+	if err != nil {
+		return err
+	}
+	sto.memory = b
 	return nil
 }
 

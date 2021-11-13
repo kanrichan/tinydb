@@ -1,8 +1,7 @@
-package main
+package tinydb
 
 import (
 	"errors"
-	"fmt"
 )
 
 type TinyValue struct {
@@ -11,37 +10,6 @@ type TinyValue struct {
 	Bool bool
 	Map  map[string]*TinyValue
 	Arr  []*TinyValue
-}
-
-func main() {
-	a := TinyRecs{
-		"123": map[string]interface{}{
-			"123": map[string]interface{}{
-				"123": 123.0,
-			},
-		},
-	}
-	fmt.Println(a.Get("123").Map["123"].Map["123"].Num)
-	db, _ := TinyDB(JSONStorage("test.json"))
-	err := db.Insert(TinyRecs{"123": 546})
-	if err != nil {
-		panic(err)
-	}
-	err = db.Update(TinyRecs{"123": 234}, Equal("123", 123))
-	if err != nil {
-		panic(err)
-	}
-	err = db.Remove(Equal("123", 234))
-	if err != nil {
-		panic(err)
-	}
-	o, err := db.Search(Equal("123", 234))
-	if err != nil {
-		panic(err)
-	}
-	for i := range o {
-		fmt.Println(o[i].Get("123"))
-	}
 }
 
 func (recs TinyRecs) Get(key string) *TinyValue {
