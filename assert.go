@@ -14,7 +14,7 @@ type TinyValue struct {
 }
 
 func main() {
-	a := Document{
+	a := TinyRecs{
 		"123": map[string]interface{}{
 			"123": map[string]interface{}{
 				"123": 123.0,
@@ -22,10 +22,30 @@ func main() {
 		},
 	}
 	fmt.Println(a.Get("123").Map["123"].Map["123"].Num)
+	db, _ := TinyDB(JSONStorage("test.json"))
+	err := db.Insert(TinyRecs{"123": 546})
+	if err != nil {
+		panic(err)
+	}
+	err = db.Update(TinyRecs{"123": 234}, Equal("123", 123))
+	if err != nil {
+		panic(err)
+	}
+	err = db.Remove(Equal("123", 234))
+	if err != nil {
+		panic(err)
+	}
+	o, err := db.Search(Equal("123", 234))
+	if err != nil {
+		panic(err)
+	}
+	for i := range o {
+		fmt.Println(o[i].Get("123"))
+	}
 }
 
-func (doc Document) Get(key string) *TinyValue {
-	return AssertJSONValue(doc[key])
+func (recs TinyRecs) Get(key string) *TinyValue {
+	return AssertJSONValue(recs[key])
 }
 
 func AssertJSONValue(v interface{}) *TinyValue {

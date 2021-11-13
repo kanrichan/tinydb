@@ -7,14 +7,14 @@ func CachingMiddleware(storage Storage, err error) (*MiddlewareCaching, error) {
 	}, err
 }
 
-func (mv *MiddlewareCaching) Read() (StorageData, error) {
-	if mv.cache == nil {
+func (mv *MiddlewareCaching) Read() (TinyTabsMap, error) {
+	if mv.cache.item == nil {
 		return mv.storage.Read()
 	}
 	return mv.cache, nil
 }
 
-func (mv *MiddlewareCaching) Write(data StorageData) error {
+func (mv *MiddlewareCaching) Write(data TinyTabsMap) error {
 	mv.cache = data
 	mv.count++
 	if mv.count >= mv.size {

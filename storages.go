@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"strings"
+	"sync"
 )
 
 // JSONStorage Create a new JSONStorage instance.
@@ -30,29 +31,31 @@ func JSONStorage(file string) (*StorageJSON, error) {
 }
 
 // Read Read data from JSON file
-func (sto *StorageJSON) Read() (StorageData, error) {
-	var data = StorageData{}
+func (sto *StorageJSON) Read() (TinyTabsMap, error) {
+	sto.mutex.Lock()
+	defer sto.mutex.Unlock()
+	var tabs = TinyTabs{}
 	sto.handle.Seek(0, 0)
 	dec := json.NewDecoder(sto.handle)
-	err := dec.Decode(&data)
+	err := dec.Decode(&tabs)
 	if err != nil && err != io.EOF {
-		return data, err
+		return TinyTabsMap{item: tabs}, err
 	}
-	return data, nil
+	return TinyTabsMap{&sync.RWMutex{}, tabs}, nil
 }
 
 // Write Write data to JSON file
-func (sto *StorageJSON) Write(data StorageData) error {
+func (sto *StorageJSON) Write(tabs TinyTabsMap) error {
 	sto.mutex.Lock()
 	defer sto.mutex.Unlock()
 	sto.handle.Truncate(0)
 	sto.handle.Seek(0, 0)
 	enc := json.NewEncoder(sto.handle)
 	enc.SetIndent("", "    ")
-	if data == nil {
+	if tabs.item == nil {
 		return errors.New("Nothing needs to be written")
 	}
-	return enc.Encode(data)
+	return enc.Encode(tabs.item)
 }
 
 // Close Close the JSONStorage instance.
@@ -62,16 +65,16 @@ func (sto *StorageJSON) Close() error {
 
 // MemoryStorage Create a new MemoryStorage instance.
 func MemoryStorage() (*StorageMemory, error) {
-	return &StorageMemory{memory: StorageData{}}, nil
+	return &StorageMemory{TinyTabsMap{&sync.RWMutex{}, TinyTabs{}}}, nil
 }
 
 // Read Read data from memory
-func (sto *StorageMemory) Read() (StorageData, error) {
+func (sto *StorageMemory) Read() (TinyTabsMap, error) {
 	return sto.memory, nil
 }
 
 // Write Write data to memory
-func (sto *StorageMemory) Write(data StorageData) error {
+func (sto *StorageMemory) Write(data TinyTabsMap) error {
 	sto.memory = data
 	return nil
 }
