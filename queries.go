@@ -143,22 +143,22 @@ func (s Selector) OrderBy(key string, asc bool) Selector {
 			ls,
 			func(i, j int) bool {
 				if _, ok := docs[ls[i]]; !ok {
-					return false
+					return true
 				}
 				if _, ok := docs[ls[j]]; !ok {
-					return false
+					return true
 				}
 				if _, ok := docs[ls[i]][key]; !ok {
-					return false
+					return true
 				}
 				if _, ok := docs[ls[j]][key]; !ok {
-					return false
+					return true
 				}
 				if _, ok := docs[ls[i]][key].(float64); !ok {
-					return false
+					return true
 				}
 				if _, ok := docs[ls[j]][key].(float64); !ok {
-					return false
+					return true
 				}
 				return asc != (docs[ls[i]][key].(float64) > docs[ls[j]][key].(float64))
 			},
