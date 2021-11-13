@@ -16,7 +16,10 @@ func (mv *MiddlewareCaching) Read() (TinyTabs, error) {
 		return mv.storage.Read()
 	}
 	var tabs TinyTabs
-	json.Unmarshal(mv.cache, &tabs)
+	err := json.Unmarshal(mv.cache, &tabs)
+	if err != nil {
+		return nil, err
+	}
 	return tabs, nil
 }
 

@@ -70,7 +70,10 @@ func MemoryStorage() (*StorageMemory, error) {
 // Read Read data from memory
 func (sto *StorageMemory) Read() (TinyTabs, error) {
 	var tabs TinyTabs
-	json.Unmarshal(sto.memory, &tabs)
+	err := json.Unmarshal(sto.memory, &tabs)
+	if err != nil {
+		return nil, err
+	}
 	return tabs, nil
 }
 
