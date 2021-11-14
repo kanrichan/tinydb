@@ -5,7 +5,7 @@ import (
 	"sync"
 )
 
-// TinyDB Create a new database with the interface of storage
+// TinyDB Create a new database with the interface of storage.
 func TinyDB(storage Storage, err error) (*database, error) {
 	if err != nil {
 		return nil, err
@@ -26,7 +26,7 @@ func TinyDB(storage Storage, err error) (*database, error) {
 	return tiny, nil
 }
 
-// SetTable Set database default table
+// SetTable Set database default table.
 func (tiny *database) SetTable(name string) error {
 	tiny.Lock()
 	defer tiny.Unlock()
@@ -44,7 +44,7 @@ func (tiny *database) SetTable(name string) error {
 	return nil
 }
 
-// DropTable Drop the table
+// DropTable Drop the table.
 func (tiny *database) DropTable(name string) error {
 	tiny.Lock()
 	defer tiny.Unlock()

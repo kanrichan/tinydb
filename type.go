@@ -5,15 +5,15 @@ import (
 	"sync"
 )
 
-// Storage An interface of Storage & Middleware
-// Should implement the method of Read() Write() Close()
+// Storage An interface of Storage & Middleware.
+// Should implement the method of Read() Write() Close().
 type Storage interface {
 	Read() (TinyTabs, error)
 	Write(TinyTabs) error
 	Close() error
 }
 
-// database the TinyDB class
+// database the TinyDB class.
 type database struct {
 	sync.Mutex
 	table   string
@@ -39,11 +39,19 @@ type MiddlewareCaching struct {
 	size    int
 }
 
+// TinyTabs
 type TinyTabs map[string]TinyDocs
+
+// TinyDocs
 type TinyDocs map[int]TinyRecs
+
+// TinyRecs
 type TinyRecs map[string]TinyData
+
+// TinyData
 type TinyData interface{}
 
+// Selector The function returns the selected serial number.
 type Selector func(docs TinyDocs) []int
 
 type TinyRecsIter struct {
@@ -51,4 +59,5 @@ type TinyRecsIter struct {
 	item  []TinyRecs
 }
 
+// TinyRecsArr The arrray of TinyRecs.
 type TinyRecsArr []TinyRecs

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 )
 
+// CachingMiddleware Create a new CachingMiddleware instance.
 func CachingMiddleware(storage Storage, err error) (*MiddlewareCaching, error) {
 	return &MiddlewareCaching{
 		storage: storage,
@@ -11,6 +12,7 @@ func CachingMiddleware(storage Storage, err error) (*MiddlewareCaching, error) {
 	}, err
 }
 
+// Read Read data from MiddlewareCaching cache.
 func (mv *MiddlewareCaching) Read() (TinyTabs, error) {
 	if mv.cache == nil {
 		return mv.storage.Read()
@@ -23,6 +25,7 @@ func (mv *MiddlewareCaching) Read() (TinyTabs, error) {
 	return tabs, nil
 }
 
+// Write Write data to MiddlewareCaching cache.
 func (mv *MiddlewareCaching) Write(tabs TinyTabs) error {
 	b, err := json.Marshal(tabs)
 	if err != nil {
@@ -40,6 +43,7 @@ func (mv *MiddlewareCaching) Write(tabs TinyTabs) error {
 	return nil
 }
 
+// Close Close the MemoryStorage instance.
 func (mv *MiddlewareCaching) Close() error {
 	tab, err := mv.Read()
 	if err != nil {

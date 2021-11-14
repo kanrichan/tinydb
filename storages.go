@@ -29,7 +29,7 @@ func JSONStorage(file string) (*StorageJSON, error) {
 	return &StorageJSON{handle: fi}, err
 }
 
-// Read Read data from JSON file
+// Read Read data from JSON file.
 func (sto *StorageJSON) Read() (TinyTabs, error) {
 	sto.mutex.Lock()
 	defer sto.mutex.Unlock()
@@ -43,7 +43,7 @@ func (sto *StorageJSON) Read() (TinyTabs, error) {
 	return tabs, nil
 }
 
-// Write Write data to JSON file
+// Write Write data to JSON file.
 func (sto *StorageJSON) Write(tabs TinyTabs) error {
 	sto.mutex.Lock()
 	defer sto.mutex.Unlock()
@@ -67,7 +67,7 @@ func MemoryStorage() (*StorageMemory, error) {
 	return &StorageMemory{memory: []byte{}}, nil
 }
 
-// Read Read data from memory
+// Read Read data from memory.
 func (sto *StorageMemory) Read() (TinyTabs, error) {
 	var tabs TinyTabs
 	err := json.Unmarshal(sto.memory, &tabs)
@@ -77,7 +77,7 @@ func (sto *StorageMemory) Read() (TinyTabs, error) {
 	return tabs, nil
 }
 
-// Write Write data to memory
+// Write Write data to memory.
 func (sto *StorageMemory) Write(tabs TinyTabs) error {
 	b, err := json.Marshal(tabs)
 	if err != nil {
@@ -87,7 +87,7 @@ func (sto *StorageMemory) Write(tabs TinyTabs) error {
 	return nil
 }
 
-// MemoryStorage Close the MemoryStorage instance.
+// Close Close the MemoryStorage instance.
 func (sto *StorageMemory) Close() error {
 	return nil
 }
