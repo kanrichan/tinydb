@@ -3,10 +3,22 @@ package tinydb
 import (
 	"encoding/json"
 	"errors"
-	"io"
 	"os"
 	"strings"
 )
+
+// Storage An interface of Storage & Middleware.
+// Should implement the method of Read() Write() Close().
+type Storage interface {
+	Read(any) error
+	Write(any) error
+	Close() error
+}
+
+// StorageJSON Store the data in a JSON file.
+type StorageJSON struct {
+	handle *os.File
+}
 
 // JSONStorage Create a new JSONStorage instance.
 func JSONStorage(file string) (*StorageJSON, error) {
@@ -30,36 +42,32 @@ func JSONStorage(file string) (*StorageJSON, error) {
 }
 
 // Read Read data from JSON file.
-func (sto *StorageJSON) Read() (TinyTabs, error) {
-	sto.mutex.Lock()
-	defer sto.mutex.Unlock()
-	var tabs = TinyTabs{}
+func (sto *StorageJSON) Read(data any) error {
 	sto.handle.Seek(0, 0)
 	dec := json.NewDecoder(sto.handle)
-	err := dec.Decode(&tabs)
-	if err != nil && err != io.EOF {
-		return tabs, err
-	}
-	return tabs, nil
+	return dec.Decode(data)
 }
 
 // Write Write data to JSON file.
-func (sto *StorageJSON) Write(tabs TinyTabs) error {
-	sto.mutex.Lock()
-	defer sto.mutex.Unlock()
+func (sto *StorageJSON) Write(data any) error {
 	sto.handle.Truncate(0)
 	sto.handle.Seek(0, 0)
 	enc := json.NewEncoder(sto.handle)
 	enc.SetIndent("", "    ")
-	if tabs == nil {
+	if data == nil {
 		return errors.New("Nothing needs to be written")
 	}
-	return enc.Encode(tabs)
+	return enc.Encode(data)
 }
 
 // Close Close the JSONStorage instance.
 func (sto *StorageJSON) Close() error {
 	return sto.handle.Close()
+}
+
+// StorageMemory Store the data in a memory.
+type StorageMemory struct {
+	memory []byte
 }
 
 // MemoryStorage Create a new MemoryStorage instance.
@@ -68,18 +76,13 @@ func MemoryStorage() (*StorageMemory, error) {
 }
 
 // Read Read data from memory.
-func (sto *StorageMemory) Read() (TinyTabs, error) {
-	var tabs TinyTabs
-	err := json.Unmarshal(sto.memory, &tabs)
-	if err != nil {
-		return nil, err
-	}
-	return tabs, nil
+func (sto *StorageMemory) Read(data any) error {
+	return json.Unmarshal(sto.memory, &data)
 }
 
 // Write Write data to memory.
-func (sto *StorageMemory) Write(tabs TinyTabs) error {
-	b, err := json.Marshal(tabs)
+func (sto *StorageMemory) Write(data any) error {
+	b, err := json.Marshal(data)
 	if err != nil {
 		return err
 	}
