@@ -18,9 +18,14 @@ func TinyDB(storage Storage) (*database, error) {
 	database.Lock()
 	defer database.Unlock()
 	var data = make(map[string][]interface{})
-	err := storage.Read(data)
+	err := storage.Read(&data)
 	if err == io.EOF {
-		storage.Write(map[string][]interface{}{"_default": nil})
+		err := storage.Write(map[string][]interface{}{"_default": nil})
+		if err != nil {
+			return nil, err
+		}
+	} else if err != nil {
+		return nil, err
 	}
 	return database, nil
 }

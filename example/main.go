@@ -6,20 +6,36 @@ import (
 	tiny "github.com/Yiwen-Chan/tinydb"
 )
 
+type student struct {
+	ID   int64  `json:"id"`
+	Name string `json:"name"`
+}
+
 func main() {
-	db, err := tiny.TinyDB(tiny.CachingMiddleware(tiny.JSONStorage("test.json")))
+	storage, err := tiny.JSONStorage("test.json")
 	if err != nil {
 		panic(err)
 	}
-	err = db.Insert(tiny.TinyRecs{"test": 123})
+	database, err := tiny.TinyDB(storage)
 	if err != nil {
 		panic(err)
 	}
-	iter, err := db.Search(tiny.All().OrderBy("test", true))
+	table := tiny.GetTable[student](database, "student")
+	err = table.Insert(student{001, "test"})
 	if err != nil {
 		panic(err)
 	}
-	for iter.HasNext() {
-		fmt.Println(iter.Next().Get("test").Num)
+	err = table.Update(func(s student) student { s.ID = 002; return s }, func(s student) bool { return true })
+	if err != nil {
+		panic(err)
+	}
+	stu, err := table.Select(func(s student) bool { return true })
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(stu)
+	_, err = table.Delete(func(s student) bool { return true })
+	if err != nil {
+		panic(err)
 	}
 }

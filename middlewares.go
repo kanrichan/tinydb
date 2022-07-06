@@ -4,6 +4,14 @@ import (
 	"encoding/json"
 )
 
+// MiddlewareCaching
+type MiddlewareCaching struct {
+	storage Storage
+	cache   []byte
+	count   int
+	size    int
+}
+
 // CachingMiddleware Create a new CachingMiddleware instance.
 func CachingMiddleware(storage Storage, err error) (*MiddlewareCaching, error) {
 	return &MiddlewareCaching{
@@ -13,43 +21,39 @@ func CachingMiddleware(storage Storage, err error) (*MiddlewareCaching, error) {
 }
 
 // Read Read data from MiddlewareCaching cache.
-func (mv *MiddlewareCaching) Read() (TinyTabs, error) {
+func (mv *MiddlewareCaching) Read(data any) error {
 	if mv.cache == nil {
-		return mv.storage.Read()
+		return mv.storage.Read(data)
 	}
-	var tabs TinyTabs
-	err := json.Unmarshal(mv.cache, &tabs)
-	if err != nil {
-		return nil, err
-	}
-	return tabs, nil
+	return json.Unmarshal(mv.cache, &data)
 }
 
 // Write Write data to MiddlewareCaching cache.
-func (mv *MiddlewareCaching) Write(tabs TinyTabs) error {
-	b, err := json.Marshal(tabs)
+func (mv *MiddlewareCaching) Write(data any) error {
+	b, err := json.Marshal(data)
 	if err != nil {
 		return err
 	}
 	mv.cache = b
 	mv.count++
 	if mv.count >= mv.size {
-		tab, err := mv.Read()
+		err := mv.Read(data)
 		if err != nil {
 			return err
 		}
-		return mv.storage.Write(tab)
+		return mv.storage.Write(data)
 	}
 	return nil
 }
 
 // Close Close the MemoryStorage instance.
 func (mv *MiddlewareCaching) Close() error {
-	tab, err := mv.Read()
+	var data = make(map[string]interface{})
+	err := mv.Read(data)
 	if err != nil {
 		return err
 	}
-	err = mv.storage.Write(tab)
+	err = mv.storage.Write(data)
 	if err != nil {
 		return err
 	}
