@@ -3,24 +3,25 @@ package tinydb
 import (
 	"encoding/json"
 	"errors"
+	"io"
 	"os"
 	"strings"
 )
 
-// Storage An interface of Storage & Middleware.
-// Should implement the method of Read() Write() Close().
+// Storage an interface of Storage & Middleware.
+// Should implement the method of Read | Write | Close.
 type Storage interface {
 	Read(any) error
 	Write(any) error
 	Close() error
 }
 
-// StorageJSON Store the data in a JSON file.
+// StorageJSON store the data in a JSON file.
 type StorageJSON struct {
 	handle *os.File
 }
 
-// JSONStorage Create a new JSONStorage instance.
+// JSONStorage create a new JSONStorage instance.
 func JSONStorage(file string) (*StorageJSON, error) {
 	var dir string
 	i1 := strings.Index(file, `\`)
@@ -41,14 +42,14 @@ func JSONStorage(file string) (*StorageJSON, error) {
 	return &StorageJSON{handle: fi}, err
 }
 
-// Read Read data from JSON file.
+// Read read data from JSON file.
 func (sto *StorageJSON) Read(data any) error {
 	sto.handle.Seek(0, 0)
 	dec := json.NewDecoder(sto.handle)
 	return dec.Decode(data)
 }
 
-// Write Write data to JSON file.
+// Write write data to JSON file.
 func (sto *StorageJSON) Write(data any) error {
 	sto.handle.Truncate(0)
 	sto.handle.Seek(0, 0)
@@ -60,27 +61,30 @@ func (sto *StorageJSON) Write(data any) error {
 	return enc.Encode(data)
 }
 
-// Close Close the JSONStorage instance.
+// Close close the JSONStorage instance.
 func (sto *StorageJSON) Close() error {
 	return sto.handle.Close()
 }
 
-// StorageMemory Store the data in a memory.
+// StorageMemory store the data in a memory.
 type StorageMemory struct {
 	memory []byte
 }
 
-// MemoryStorage Create a new MemoryStorage instance.
+// MemoryStorage create a new MemoryStorage instance.
 func MemoryStorage() (*StorageMemory, error) {
 	return &StorageMemory{memory: []byte{}}, nil
 }
 
-// Read Read data from memory.
+// Read read data from memory.
 func (sto *StorageMemory) Read(data any) error {
+	if sto.memory == nil || len(sto.memory) == 0 {
+		return io.EOF
+	}
 	return json.Unmarshal(sto.memory, &data)
 }
 
-// Write Write data to memory.
+// Write write data to memory.
 func (sto *StorageMemory) Write(data any) error {
 	b, err := json.Marshal(data)
 	if err != nil {
@@ -90,7 +94,7 @@ func (sto *StorageMemory) Write(data any) error {
 	return nil
 }
 
-// Close Close the MemoryStorage instance.
+// Close close the MemoryStorage instance.
 func (sto *StorageMemory) Close() error {
 	return nil
 }

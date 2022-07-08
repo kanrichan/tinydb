@@ -5,16 +5,16 @@ import (
 	"sync"
 )
 
-// database the TinyDB class.
-type database struct {
+// Database the TinyDB database.
+type Database struct {
 	sync.Mutex
 	table   string
 	storage Storage
 }
 
-// TinyDB Create a new database with the interface of storage.
-func TinyDB(storage Storage) (*database, error) {
-	var database = &database{sync.Mutex{}, "_default", storage}
+// TinyDB create a new database with the interface of storage.
+func TinyDB(storage Storage) (*Database, error) {
+	var database = &Database{sync.Mutex{}, "_default", storage}
 	database.Lock()
 	defer database.Unlock()
 	var data = make(map[string][]interface{})
@@ -30,18 +30,21 @@ func TinyDB(storage Storage) (*database, error) {
 	return database, nil
 }
 
-func GetTable[T any](database *database, name string) *Table[T] {
-	return &Table[T]{name, database}
+// Close close the database.
+func (db *Database) Close() error {
+	return db.storage.Close()
 }
 
-func DropTable[T any](database *database, name string) error {
-	database.Lock()
-	defer database.Unlock()
+// Tables get the names of all tables in the database.
+func (db *Database) Tables() ([]string, error) {
 	var data = make(map[string][]interface{})
-	err := database.storage.Read(data)
+	err := db.storage.Read(&data)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	delete(data, name)
-	return database.storage.Write(data)
+	var out = make([]string, 0)
+	for k := range data {
+		out = append(out, k)
+	}
+	return out, nil
 }

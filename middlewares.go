@@ -13,11 +13,8 @@ type MiddlewareCaching struct {
 }
 
 // CachingMiddleware Create a new CachingMiddleware instance.
-func CachingMiddleware(storage Storage, err error) (*MiddlewareCaching, error) {
-	return &MiddlewareCaching{
-		storage: storage,
-		size:    1000,
-	}, err
+func CachingMiddleware(storage Storage, size int) *MiddlewareCaching {
+	return &MiddlewareCaching{storage: storage, size: size}
 }
 
 // Read Read data from MiddlewareCaching cache.

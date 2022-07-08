@@ -1,10 +1,36 @@
 package tinydb
 
+import "reflect"
+
+// Table the table of the database.
 type Table[T any] struct {
 	name     string
-	database *database
+	database *Database
 }
 
+// GetTable get a specific table from the database.
+func GetTable[T any](database *Database) *Table[T] {
+	var t T
+	name := reflect.TypeOf(t).Name()
+	return &Table[T]{name, database}
+}
+
+// DropTable drop a specific table from the database.
+func DropTable[T any](database *Database) error {
+	database.Lock()
+	defer database.Unlock()
+	var t T
+	name := reflect.TypeOf(t).Name()
+	var data = make(map[string][]interface{})
+	err := database.storage.Read(data)
+	if err != nil {
+		return err
+	}
+	delete(data, name)
+	return database.storage.Write(data)
+}
+
+// Insert insert a new document into table.
 func (tbl *Table[T]) Insert(items ...T) error {
 	tbl.database.Lock()
 	defer tbl.database.Unlock()
@@ -22,6 +48,7 @@ func (tbl *Table[T]) Insert(items ...T) error {
 	return tbl.database.storage.Write(data)
 }
 
+// Delete delete all macthing documents in table.
 func (tbl *Table[T]) Delete(condition func(T) bool) ([]T, error) {
 	tbl.database.Lock()
 	defer tbl.database.Unlock()
@@ -52,6 +79,7 @@ func (tbl *Table[T]) Delete(condition func(T) bool) ([]T, error) {
 	return out, tbl.database.storage.Write(data)
 }
 
+// Update update all macthing documents with updater.
 func (tbl *Table[T]) Update(updater func(T) T, condition func(T) bool) error {
 	tbl.database.Lock()
 	defer tbl.database.Unlock()
@@ -83,6 +111,7 @@ func (tbl *Table[T]) Update(updater func(T) T, condition func(T) bool) error {
 	return tbl.database.storage.Write(data)
 }
 
+// Select select for all documents matching condition.
 func (tbl *Table[T]) Select(condition func(T) bool) ([]T, error) {
 	var data = make(map[string][]T)
 	err := tbl.database.storage.Read(&data)
