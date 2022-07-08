@@ -16,11 +16,12 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	database, err := tiny.TinyDB(storage)
+	database, err := tiny.TinyDB(tiny.CachingMiddleware(storage, 1))
 	if err != nil {
 		panic(err)
 	}
-	table := tiny.GetTable[student](database, "student")
+	defer database.Close()
+	table := tiny.GetTable[student](database)
 	err = table.Insert(student{001, "test"})
 	if err != nil {
 		panic(err)
