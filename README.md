@@ -8,6 +8,11 @@ But in this project, it's written in pure Golang and has no external dependencie
 
 ### Example Code
 
+Import
+```Go
+import tiny "github.com/Yiwen-Chan/tinydb"
+```
+
 New a storage
 ```Go
 storage, err := tiny.JSONStorage("test.json")
