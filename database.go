@@ -30,7 +30,7 @@ func TinyDB(storage Storage) (*Database, error) {
 	return database, nil
 }
 
-// Close close the database.
+// Close the database.
 func (db *Database) Close() error {
 	return db.storage.Close()
 }
