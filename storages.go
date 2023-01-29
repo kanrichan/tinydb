@@ -42,14 +42,14 @@ func JSONStorage(file string) (*StorageJSON, error) {
 	return &StorageJSON{handle: fi}, err
 }
 
-// Read read data from JSON file.
+// Read data from JSON file.
 func (sto *StorageJSON) Read(data any) error {
 	sto.handle.Seek(0, 0)
 	dec := json.NewDecoder(sto.handle)
 	return dec.Decode(data)
 }
 
-// Write write data to JSON file.
+// Write data to JSON file.
 func (sto *StorageJSON) Write(data any) error {
 	sto.handle.Truncate(0)
 	sto.handle.Seek(0, 0)
@@ -61,7 +61,7 @@ func (sto *StorageJSON) Write(data any) error {
 	return enc.Encode(data)
 }
 
-// Close close the JSONStorage instance.
+// Close the JSONStorage instance.
 func (sto *StorageJSON) Close() error {
 	return sto.handle.Close()
 }
@@ -76,7 +76,7 @@ func MemoryStorage() (*StorageMemory, error) {
 	return &StorageMemory{memory: []byte{}}, nil
 }
 
-// Read read data from memory.
+// Read data from memory.
 func (sto *StorageMemory) Read(data any) error {
 	if sto.memory == nil || len(sto.memory) == 0 {
 		return io.EOF
@@ -84,7 +84,7 @@ func (sto *StorageMemory) Read(data any) error {
 	return json.Unmarshal(sto.memory, &data)
 }
 
-// Write write data to memory.
+// Write data to memory.
 func (sto *StorageMemory) Write(data any) error {
 	b, err := json.Marshal(data)
 	if err != nil {
@@ -94,7 +94,7 @@ func (sto *StorageMemory) Write(data any) error {
 	return nil
 }
 
-// Close close the MemoryStorage instance.
+// Close the MemoryStorage instance.
 func (sto *StorageMemory) Close() error {
 	return nil
 }

@@ -30,7 +30,7 @@ func DropTable[T any](database *Database) error {
 	return database.storage.Write(data)
 }
 
-// Insert insert a new document into table.
+// Insert a new document into table.
 func (tbl *Table[T]) Insert(items ...T) error {
 	tbl.database.Lock()
 	defer tbl.database.Unlock()
@@ -48,7 +48,7 @@ func (tbl *Table[T]) Insert(items ...T) error {
 	return tbl.database.storage.Write(data)
 }
 
-// Delete delete all macthing documents in table.
+// Delete delete all matching documents in table.
 func (tbl *Table[T]) Delete(condition func(T) bool) ([]T, error) {
 	tbl.database.Lock()
 	defer tbl.database.Unlock()
@@ -79,7 +79,7 @@ func (tbl *Table[T]) Delete(condition func(T) bool) ([]T, error) {
 	return out, tbl.database.storage.Write(data)
 }
 
-// Update update all macthing documents with updater.
+// Update all matching documents with updater.
 func (tbl *Table[T]) Update(updater func(T) T, condition func(T) bool) error {
 	tbl.database.Lock()
 	defer tbl.database.Unlock()
@@ -111,7 +111,16 @@ func (tbl *Table[T]) Update(updater func(T) T, condition func(T) bool) error {
 	return tbl.database.storage.Write(data)
 }
 
-// Select select for all documents matching condition.
+// MustSelect for all documents matching condition without error.
+func (tbl *Table[T]) MustSelect(condition func(T) bool) []T {
+	out, err := tbl.Select(condition)
+	if err != nil {
+		panic(err)
+	}
+	return out
+}
+
+// Select for all documents matching condition.
 func (tbl *Table[T]) Select(condition func(T) bool) ([]T, error) {
 	var data = make(map[string][]T)
 	err := tbl.database.storage.Read(&data)
@@ -129,4 +138,32 @@ func (tbl *Table[T]) Select(condition func(T) bool) ([]T, error) {
 		}
 	}
 	return out, nil
+}
+
+// MustAny determines whether a documents contain any elements without error.
+func (tbl *Table[T]) MustAny(condition func(T) bool) bool {
+	out, err := tbl.Any(condition)
+	if err != nil {
+		panic(err)
+	}
+	return out
+}
+
+// Any determines whether a documents contain any elements.
+func (tbl *Table[T]) Any(condition func(T) bool) (bool, error) {
+	var data = make(map[string][]T)
+	err := tbl.database.storage.Read(&data)
+	if err != nil {
+		return false, err
+	}
+	if _, ok := data[tbl.name]; !ok {
+		return false, nil
+	}
+	for i := range data[tbl.name] {
+		item := data[tbl.name][i]
+		if condition(item) {
+			return true, nil
+		}
+	}
+	return false, nil
 }

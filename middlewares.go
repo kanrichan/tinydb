@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 )
 
-// MiddlewareCaching
+// MiddlewareCaching is a middleware for caching data.
 type MiddlewareCaching struct {
 	storage Storage
 	cache   []byte
@@ -17,7 +17,7 @@ func CachingMiddleware(storage Storage, size int) *MiddlewareCaching {
 	return &MiddlewareCaching{storage: storage, size: size}
 }
 
-// Read Read data from MiddlewareCaching cache.
+// Read data from MiddlewareCaching cache.
 func (mv *MiddlewareCaching) Read(data any) error {
 	if mv.cache == nil {
 		return mv.storage.Read(data)
@@ -25,7 +25,7 @@ func (mv *MiddlewareCaching) Read(data any) error {
 	return json.Unmarshal(mv.cache, &data)
 }
 
-// Write Write data to MiddlewareCaching cache.
+// Write data to MiddlewareCaching cache.
 func (mv *MiddlewareCaching) Write(data any) error {
 	b, err := json.Marshal(data)
 	if err != nil {
@@ -43,7 +43,7 @@ func (mv *MiddlewareCaching) Write(data any) error {
 	return nil
 }
 
-// Close Close the MemoryStorage instance.
+// Close the MemoryStorage instance.
 func (mv *MiddlewareCaching) Close() error {
 	var data = make(map[string]interface{})
 	err := mv.Read(data)
