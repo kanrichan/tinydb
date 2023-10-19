@@ -1,6 +1,9 @@
 package tinydb
 
-import "reflect"
+import (
+	"encoding/json"
+	"reflect"
+)
 
 // Table the table of the database.
 type Table[T any] struct {
@@ -83,17 +86,26 @@ func (tbl *Table[T]) Delete(condition func(T) bool) ([]T, error) {
 func (tbl *Table[T]) Update(updater func(T) T, condition func(T) bool) error {
 	tbl.database.Lock()
 	defer tbl.database.Unlock()
-	var data = make(map[string][]T)
+	var data = make(map[string][]any)
 	err := tbl.database.storage.Read(&data)
 	if err != nil {
 		return err
 	}
-	var out []T
 	if _, ok := data[tbl.name]; !ok {
 		return nil
 	}
-	for i := range data[tbl.name] {
-		item := data[tbl.name][i]
+	raw, err := json.Marshal(data[tbl.name])
+	if err != nil {
+		return err
+	}
+	actualItems := []T{}
+	err = json.Unmarshal(raw, &actualItems)
+	if err != nil {
+		return err
+	}
+	var out []any
+
+	for _, item := range actualItems {
 		if condition(item) {
 			item = updater(item)
 		}
